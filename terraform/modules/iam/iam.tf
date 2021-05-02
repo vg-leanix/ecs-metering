@@ -1,14 +1,43 @@
 resource "aws_iam_policy" "lambda_ecs_status" {
   name        = "LambdaECSTaskStatusPolicy"
   description = "allows the Lambda function to make API calls"
-  policy      = jsondecode(file("${path.module}/iam_ecs_status.json"))
+  policy      = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "ecs:DescribeContainerInstances",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:GetItem",
+                "dynamodb:UpdateItem"
+            ],
+            "Resource": "arn:aws:dynamodb:*:*:*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": "arn:aws:logs:*:*:*"
+        }
+    ]
+})
 
 }
 
 
 resource "aws_iam_role" "lambda_task_role" {
   name = "LambdaECSTaskStatusRole"
-  assume_role_policy = jsondecode({
+  assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : {
       "Effect" : "Allow",
@@ -22,7 +51,7 @@ resource "aws_iam_role" "lambda_task_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_task_role_attachment" {
-  role       = aws_iam_role.lambda_task_role.arn
-  policy_arn = aws_iam_policy.lambda_ecs_status.name
+  role       = aws_iam_role.lambda_task_role.name
+  policy_arn = aws_iam_policy.lambda_ecs_status.arn
 }
 

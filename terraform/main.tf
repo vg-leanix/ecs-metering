@@ -6,16 +6,19 @@ terraform {
   }
 }
 
+provider "aws" {
+  region = "us-east-2"
+}
+
 module "lambda" {
   source = "./modules/lambda"
 
-  exec_role = module.iam.lambda_exec_role_arn
+  exec_role = module.iam.lambda_iam_role_arn
 
 }
 
-module "db" {
-  source     = "./modules/dynamodb"
-  table_name = "taskStatus"
+module "dynamodb" {
+  source = "./modules/dynamodb"
 
 }
 
@@ -23,6 +26,7 @@ module "cloudwatch" {
   source = "./modules/cloudwatch"
 
   lambda_exec_role_arn = module.lambda.lambda_arn
+  lambda_function_name = module.lambda.lambda_function_name
 
 }
 
