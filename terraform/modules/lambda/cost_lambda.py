@@ -8,6 +8,7 @@ from dateutil.tz import *
 from dateutil.relativedelta import *
 import re
 import sys
+import requests
 import logging
 import json
 import os
@@ -326,6 +327,31 @@ def get_ecs_service_bcs(cluster: str, ci_tag: str):
     return business_contexts
 
 
+def call_iapi(ldif:dict):
+
+    auth_url = 'https://demo-eu.leanix.net/services/mtm/v1/oauth2/token'
+    request_url = 'https://demo-eu.leanix.net/services/integration-api/v1/synchronizationRuns'
+
+    # token = os.environ['leanix_api_key']
+    token = "XVWf6BzqPY377NHh7OFhtJgWxnCTDLL6amXkNgmp"
+
+    response = requests.post(auth_url, auth=('apitoken', token),
+                             data={'grant_type': 'client_credentials'})
+    response.raise_for_status()
+    access_token = response.json()['access_token']
+    auth_header = 'Bearer ' + access_token
+    header = {'Authorization': auth_header, "Content-Type": "application/json"}
+   
+
+    live = {'start': 'true'}
+    test = {'test': 'true'}
+    ldif = json.dumps(ldif)
+    r = requests.post(request_url, data=ldif, headers=header, params=live)
+
+    r.raise_for_status()
+    print(r.json())
+
+
 def lambda_handler(event, context):
 
     region = 'us-east-2'
@@ -369,7 +395,7 @@ def lambda_handler(event, context):
             serviceCost_t30 = float(ec2_mem_t30+ec2_cpu_t30)
 
         bc_cost = {
-            "type": "Application",
+            "type": "ECSMeteringCost",
             "id": bc_name,
             "data": {
                 "totalCloudCostsYesterday": serviceCost,
@@ -379,12 +405,12 @@ def lambda_handler(event, context):
         payload.append(bc_cost)
 
     ldif = {
-        "connectorType": "cloudockit",
-        "connectorId": "CDK",
+        "connectorType": "libertex_ecs",
+        "connectorId": "libertex_ecs_lambda",
         "connectorVersion": "1.0.0",
         "lxVersion": "1.0.0",
-        "lxWorkspace": "workspace-id",
-        "description": "Imports Cloudockit data into LeanIX",
+        "lxWorkspace": "ddb92c34-93f4-4fc8-9a00-aeb432b557d3",
+        "description": "Imports ECS cost data into LeanIX",
         "processingDirection": "inbound",
         "processingMode": "full",
         "content": payload
@@ -400,32 +426,10 @@ def lambda_handler(event, context):
     with open('/tmp/ldif.json', 'rb') as fh:
         s3.upload_fileobj(fh, "ecsbucktforldif", filename)
 
+    
+    call_iapi(ldif=ldif)
     print('done')
 
-
-def get_ecs_service_bcs(cluster: str, ci_tag: str):
-    ecs = boto3.client("ecs")
-
-    services = ecs.list_services(cluster=cluster, launchType="EC2")[
-        'serviceArns']
-
-    service_details = ecs.describe_services(cluster=cluster, services=services, include=['TAGS'])[
-        'services']  # TODO: can only get 10 services at a time
-
-    business_contexts = {}
-
-    for serv in service_details:
-
-        try:
-            if serv['status'] == "ACTIVE":
-                business_context = [x['value']
-                                    for x in serv['tags'] if x['key'] == ci_tag]
-                business_contexts[serv['serviceName']] = business_context[0]
-        except KeyError:
-            srv_name = serv['serviceName']
-            print(f'{srv_name} has no tags')
-
-    return business_contexts
 
 
 if __name__ == "__main__":
