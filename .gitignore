@@ -2,3 +2,4 @@
 .terraform.lock*
 test.json
 .DS_Store
+env
