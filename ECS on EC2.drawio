@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2021-05-03T08:49:05.001Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36" etag="kAtduG27Wh6pR3ia5DcD" version="14.6.9" type="github">
+<mxfile host="app.diagrams.net" modified="2021-05-03T08:52:12.268Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36" etag="EN_Yuar5Ab053Mwt7bFH" version="14.6.9" type="github">
   <diagram id="FMYuv1Z7_I0VgL38lzHM" name="Page-1">
-    <mxGraphModel dx="1602" dy="771" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1602" dy="907" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -226,6 +226,36 @@
         </mxCell>
         <mxCell id="qThhuBaJwghWSxTin29X-23" value="task_name - allocation % - task_cost&amp;nbsp; - date - service_name - tag_key - tag_value&lt;br&gt;e.g. Task 1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="qThhuBaJwghWSxTin29X-19" vertex="1">
           <mxGeometry x="31.88" y="40" width="458.12" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="HnYpG97gXFrBgNwjJXyX-10" value="cost allocation tag: CA1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="237.32000000000005" y="635" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="HnYpG97gXFrBgNwjJXyX-11" value="cost allocation tag: CA2" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="660" y="635" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="HnYpG97gXFrBgNwjJXyX-12" value="service-tag: service A" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="210" y="180" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="HnYpG97gXFrBgNwjJXyX-13" value="service-tag: service B" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="445" y="180" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="HnYpG97gXFrBgNwjJXyX-17" value="&lt;font style=&quot;font-size: 8px&quot;&gt;service A&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="360" y="280" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="HnYpG97gXFrBgNwjJXyX-18" value="&lt;font style=&quot;font-size: 8px&quot;&gt;service A&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="357.32" y="320" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="HnYpG97gXFrBgNwjJXyX-19" value="&lt;font style=&quot;font-size: 8px&quot;&gt;service A&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="360" y="355" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="HnYpG97gXFrBgNwjJXyX-20" value="&lt;font style=&quot;font-size: 8px&quot;&gt;service B&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="590" y="270" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="HnYpG97gXFrBgNwjJXyX-21" value="&lt;font style=&quot;font-size: 8px&quot;&gt;service B&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="590" y="320" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="HnYpG97gXFrBgNwjJXyX-22" value="&lt;font style=&quot;font-size: 8px&quot;&gt;service B&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="592" y="360" width="50" height="20" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
