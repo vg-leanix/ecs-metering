@@ -9,7 +9,7 @@ data "archive_file" "zip" {
 
 
 resource "aws_lambda_function" "chargeback" {
-  function_name = "leanix-api-cost-copy"
+  function_name = "compute-ecs-services-cost"
   role          = var.exec_role
   filename      = data.archive_file.zip.output_path
   source_code_hash = data.archive_file.zip.output_base64sha256
