@@ -2,3 +2,7 @@
 .terraform.lock*
 test.json
 .DS_Store
+env
+package
+*zip
+lambda_layers
