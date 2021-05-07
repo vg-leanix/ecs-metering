@@ -1,6 +1,11 @@
 output "lambda_metering_arn" {
   description = "Policy that allows the Lambda function to make the necessary API calls"
-  value       = module.lambda.lambda_arn
+  value       = module.metering_lambda.lambda_arn
+}
+
+output "lambda_chargeback_arn" {
+  description = "Policy that allows the Lambda function to make the necessary API calls"
+  value       = module.chargeback_lambda.lambda_arn
 }
 
 output "task_states_db" {
@@ -10,7 +15,12 @@ output "task_states_db" {
 
 output "cloudwatch_event_rule_arn" {
   description = "ARN of CloudWatch event rule"
-  value       = module.cloudwatch.event_rule_arn
+  value       = module.cloudwatch_metering.event_rule_arn
+}
+
+output "cloudwatch_event_rule_run_daily" {
+  description = "ARN of CloudWatch event rule"
+  value       = module.cloudwatch_chargeback.event_rule_arn
 }
 
 output "exec_iam_role_lambda" {

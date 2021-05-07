@@ -1,0 +1,83 @@
+{
+    "processors": [
+        {
+            "processorType": "inboundMetrics",
+            "processorDescription": "Store the tag-level costs for all tags configured as a source for the business context for all billing entries with dimension TAG read from the master account's LDIF in the measurement 'Cloud Costs (Business Context)'",
+            "filter": {},
+            "updates": [
+                {
+                    "key": {
+                        "expr": "measurement"
+                    },
+                    "values": [
+                        {
+                            "expr": "Cloud Costs (Business Context)"
+                        }
+                    ]
+                },
+                {
+                    "key": {
+                        "expr": "time"
+                    },
+                    "values": [
+                        {
+                            "expr": "${content.data.datetime}.000000Z"
+                        }
+                    ]
+                },
+                {
+                    "key": {
+                        "expr": "fieldKey"
+                    },
+                    "values": [
+                        {
+                            "expr": "other"
+                        }
+                    ]
+                },
+                {
+                    "key": {
+                        "expr": "fieldValueNumber"
+                    },
+                    "values": [
+                        {
+                            "expr": "${content.data.totalCloudCostsYesterday}"
+                        }
+                    ]
+                },
+                {
+                    "key": {
+                        "expr": "tags"
+                    },
+                    "values": [
+                        {
+                            "map": [
+                                {
+                                    "key": "key",
+                                    "value": "External ID (Business Context)"
+                                },
+                                {
+                                    "key": "value",
+                                    "value": "${content.data.application}"
+                                }
+                            ]
+                        },
+                        {
+                            "map": [
+                                {
+                                    "key": "key",
+                                    "value": "Connector Instance"
+                                },
+                                {
+                                    "key": "value",
+                                    "value": "${content.data.serviceId}"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "enabled": true
+        }
+    ]
+}

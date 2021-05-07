@@ -1,36 +1,59 @@
 resource "aws_iam_policy" "lambda_ecs_status" {
   name        = "LambdaECSTaskStatusPolicy"
   description = "allows the Lambda function to make API calls"
-  policy      = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": "ecs:DescribeContainerInstances",
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "dynamodb:BatchGetItem",
-                "dynamodb:BatchWriteItem",
-                "dynamodb:PutItem",
-                "dynamodb:GetItem",
-                "dynamodb:UpdateItem"
-            ],
-            "Resource": "arn:aws:dynamodb:*:*:*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-            ],
-            "Resource": "arn:aws:logs:*:*:*"
-        }
-    ]
-})
+  policy      = jsonencode(
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+          {
+              "Sid": "VisualEditor0",
+              "Effect": "Allow",
+              "Action": "dynamodb:GetRecords",
+              "Resource": "arn:aws:dynamodb:*:*:table/* "
+          },
+          {
+              "Sid": "VisualEditor1",
+              "Effect": "Allow",
+              "Action": [
+                  "pricing:DescribeServices",
+                  "logs:CreateLogStream",
+                  "pricing:GetAttributeValues",
+                  "ecs:*",
+                  "logs:PutLogEvents",
+                  "logs:CreateLogGroup",
+                  "pricing:GetProducts"
+              ],
+              "Resource": "*"
+          },
+          {
+              "Sid": "VisualEditor2",
+              "Effect": "Allow",
+              "Action": [
+                  "s3:GetObject",
+                  "s3:PutObject",
+                  "s3:PutObjectAcl",
+                  "s3:GetObjectAcl",
+                  "dynamodb:BatchGetItem",
+                  "logs:CreateLogStream",
+                  "dynamodb:BatchWriteItem",
+                  "dynamodb:PutItem",
+                  "dynamodb:GetItem",
+                  "s3:CreateBucket",
+                  "dynamodb:Scan",
+                  "dynamodb:Query",
+                  "dynamodb:UpdateItem",
+                  "logs:CreateLogGroup",
+                  "logs:PutLogEvents"
+              ],
+              "Resource": [
+                  "arn:aws:s3:::*",
+                  "arn:aws:logs:*:*:*",
+                  "arn:aws:dynamodb:*:*:table/*"
+              ]
+          }
+      ]
+    }
+  )
 
 }
 
