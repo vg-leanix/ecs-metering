@@ -16,6 +16,10 @@ module "metering_lambda" {
   exec_role = module.iam.lambda_iam_role_arn
 
 }
+module "s3_ldif" {
+  source = "./modules/s3"
+
+}
 
 module "chargeback_lambda" {
   source = "./modules/lambda/chargeback_lambda"

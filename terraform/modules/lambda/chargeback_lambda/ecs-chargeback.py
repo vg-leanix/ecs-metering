@@ -448,7 +448,7 @@ def lambda_handler(event, context):
     date = datetime.datetime.now().strftime("%Y-%m-%d%H:%M")
     filename = "ldif_"+date+".json"
     with open('/tmp/ldif.json', 'rb') as fh:
-        s3.upload_fileobj(fh, "ecsbucktforldif", filename)
+        s3.upload_fileobj(fh, "ecsbucktforldif1", filename)
 
     
     call_iapi(ldif=ldif)

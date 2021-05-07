@@ -27,3 +27,8 @@ output "exec_iam_role_lambda" {
   description = "ARN of IAM execution role for lambda function"
   value       = module.iam.lambda_iam_role_arn
 }
+
+output "s3_lidf_arn" {
+  description = "ARN of S3 for LDIF storage"
+  value       = module.s3.s3_arn
+}
