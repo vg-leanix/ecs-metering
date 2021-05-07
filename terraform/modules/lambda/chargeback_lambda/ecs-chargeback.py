@@ -365,6 +365,17 @@ def generateRandomNumber(digits):
     finalNumber = finalNumber + str(math.floor(random.random() * (10 ** (digits % 16))))
     return int(finalNumber)    
 
+def get_cluster_names(region: str):
+    ecs = boto3.client("ecs")
+    clusters = ecs.list_clusters()['clusterArns']
+    clusters_in_region = list()
+    for cluster in clusters:
+        if region in cluster.split(":"):
+            cluster_name=cluster.split(":")[-1]
+            cluster_name = cluster_name.split("/")[-1]
+            clusters_in_region.append(cluster_name)
+    return clusters_in_region
+
 
 def lambda_handler(event, context):
 
