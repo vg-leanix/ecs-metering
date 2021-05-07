@@ -1,0 +1,70 @@
+{
+    "connectorType": "leanix-custom",
+    "connectorId": "ecs-cost-distribution",
+    "connectorVersion": "1.0.0",
+    "lxVersion": "1.0.0",
+    "description": "Approximated distribution of ECS Service cost by Business Context",
+    "processingDirection": "inbound",
+    "content": [
+        {
+            "type": "ECSMeteringCost",
+            "id": "1dc6c8c3-794a-3890-8363-1a409502b917",
+            "data": {
+                "totalCloudCostsYesterday": 0.41759999999999997,
+                "application": "libertex-service-2",
+                "datetime": "2021-05-06T00:00:00",
+                "serviceId": "arn:aws:ecs:us-east-2:129263247607:service/libertex-replica/service-2"
+            }
+        },
+        {
+            "type": "ECSMeteringCost",
+            "id": "baa3099d-9bc9-3ba7-900b-9440d39c85ed",
+            "data": {
+                "totalCloudCostsYesterday": 0.23671652777777777,
+                "application": "libertex-service-2",
+                "datetime": "2021-05-05T00:00:00",
+                "serviceId": "arn:aws:ecs:us-east-2:129263247607:service/libertex-replica/service-2"
+            }
+        },
+        {
+            "type": "ECSMeteringCost",
+            "id": "69483978-0a15-3701-9ee0-897d92404848",
+            "data": {
+                "totalCloudCostsYesterday": 0.20879999999999999,
+                "application": "libertex-service-2",
+                "datetime": "2021-05-04T00:00:00",
+                "serviceId": "arn:aws:ecs:us-east-2:129263247607:service/libertex-replica/service-2"
+            }
+        },
+        {
+            "type": "ECSMeteringCost",
+            "id": "54f2f4c3-e815-37ef-9f2a-b1cbc66f113a",
+            "data": {
+                "totalCloudCostsYesterday": 0.10439999999999999,
+                "application": "libertex-service-1",
+                "datetime": "2021-05-06T00:00:00",
+                "serviceId": "arn:aws:ecs:us-east-2:129263247607:service/libertex-replica/service-1"
+            }
+        },
+        {
+            "type": "ECSMeteringCost",
+            "id": "aa377ab7-266a-379c-909a-7726d7dd92e1",
+            "data": {
+                "totalCloudCostsYesterday": 0.10439999999999999,
+                "application": "libertex-service-1",
+                "datetime": "2021-05-05T00:00:00",
+                "serviceId": "arn:aws:ecs:us-east-2:129263247607:service/libertex-replica/service-1"
+            }
+        },
+        {
+            "type": "ECSMeteringCost",
+            "id": "820ce070-bb63-3d13-be4b-85174ef04438",
+            "data": {
+                "totalCloudCostsYesterday": 0.10439999999999999,
+                "application": "libertex-service-1",
+                "datetime": "2021-05-04T00:00:00",
+                "serviceId": "arn:aws:ecs:us-east-2:129263247607:service/libertex-replica/service-1"
+            }
+        }
+    ]
+}

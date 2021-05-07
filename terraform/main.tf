@@ -18,7 +18,6 @@ module "metering_lambda" {
 }
 module "s3_ldif" {
   source = "./modules/s3"
-
 }
 
 module "chargeback_lambda" {
@@ -47,6 +46,16 @@ module "cloudwatch_chargeback" {
   lambda_exec_role_arn = module.chargeback_lambda.lambda_arn
   lambda_function_name = module.chargeback_lambda.lambda_function_name
 
+}
+
+module "aws_secretsmanager_secret_version" {
+  source = "./modules/secret-manager/secret"
+  
+  id = module.aws_secretsmanager_secret.secret_version_id
+}
+
+module "aws_secretsmanager_secret" {
+  source = "./modules/secret-manager/secret-version"
 }
 
 module "iam" {

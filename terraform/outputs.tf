@@ -30,5 +30,9 @@ output "exec_iam_role_lambda" {
 
 output "s3_lidf_arn" {
   description = "ARN of S3 for LDIF storage"
-  value       = module.s3.s3_arn
+  value       = module.s3_ldif.s3_arn
+}
+
+output "aws_secretsmanager_secret_id" {
+  value       = module.aws_secretsmanager_secret.secret_version_id
 }

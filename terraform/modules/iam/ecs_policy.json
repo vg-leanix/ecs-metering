@@ -46,6 +46,18 @@
                 "arn:aws:logs:*:*:*",
                 "arn:aws:dynamodb:*:*:table/*"
             ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "secretsmanager:GetResourcePolicy",
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+                "secretsmanager:ListSecretVersionIds"
+            ],
+            "Resource": [
+                "*"
+            ]
         }
     ]
 }

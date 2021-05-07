@@ -311,13 +311,15 @@ def get_ecs_service_bcs(cluster: str, ci_tag: str):
     services = ecs.list_services(cluster=cluster, launchType="EC2")[
         'serviceArns']
 
-    service_details = ecs.describe_services(cluster=cluster, services=services, include=['TAGS'])[
-        'services']  # TODO: can only get 10 services at a time
+    service_details = []
+    for service in services:
+        service_details.append(ecs.describe_services(cluster=cluster, services=[service], include=['TAGS'])[
+        'services'][0])
+
 
     business_contexts = {}
 
     for serv in service_details:
-
         try:
             if serv['status'] == "ACTIVE":
                 for x in serv['tags']:
@@ -333,21 +335,13 @@ def get_ecs_service_bcs(cluster: str, ci_tag: str):
     return business_contexts
 
 
-def generateRandomNumber(digits):
-    finalNumber = ""
-    for i in range(digits // 16):
-        finalNumber = finalNumber + str(math.floor(random.random() * 10000000000000000))
-    finalNumber = finalNumber + str(math.floor(random.random() * (10 ** (digits % 16))))
-    return int(finalNumber)    
+def call_iapi(ldif:dict, host: str, token: str):
 
-
-def call_iapi(ldif:dict):
-
-    auth_url = 'https://demo-eu.leanix.net/services/mtm/v1/oauth2/token'
-    request_url = 'https://demo-eu.leanix.net/services/integration-api/v1/synchronizationRuns?start=false&test=false'
+    auth_url = 'https://'+host+'/services/mtm/v1/oauth2/token'
+    request_url = 'https://'+host+'/services/integration-api/v1/synchronizationRuns?start=false&test=false'
 
     # token = os.environ['leanix_api_key']
-    token = "bdPzZ9gZXWcCgCqqH5HBtFCrEOWJcuMEJMBkLAgg"
+    token = token
 
     response = requests.post(auth_url, auth=('apitoken', token),
                              data={'grant_type': 'client_credentials'})
@@ -365,69 +359,130 @@ def call_iapi(ldif:dict):
     request_url_update = 'https://demo-eu.leanix.net/services/integration-api/v1/synchronizationRuns/'+id+'/start?test=false'
     print(request_url_update)
     r = requests.post(request_url_update, json=ldif, headers=header)
+ 
+ 
+def generateRandomNumber(digits):
+    finalNumber = ""
+    for i in range(digits // 16):
+        finalNumber = finalNumber + str(math.floor(random.random() * 10000000000000000))
+    finalNumber = finalNumber + str(math.floor(random.random() * (10 ** (digits % 16))))
+    return int(finalNumber)    
+
+
+def get_cluster_names(region: str):
+    ecs = boto3.client("ecs")
+    clusters = ecs.list_clusters()['clusterArns']
+    clusters_in_region = list()
+    for cluster in clusters:
+        if region in cluster.split(":"):
+            cluster_name=cluster.split(":")[-1]
+            cluster_name = cluster_name.split("/")[-1]
+            clusters_in_region.append(cluster_name)
+    return clusters_in_region
+
+
+def get_secret():
+    secret_name = "leanixsecret"
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=session.region_name,
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'ResourceNotFoundException':
+            print("The requested secret " + secret_name + " was not found")
+        elif e.response['Error']['Code'] == 'InvalidRequestException':
+            print("The request was invalid due to:", e)
+        elif e.response['Error']['Code'] == 'InvalidParameterException':
+            print("The request had invalid params:", e)
+        elif e.response['Error']['Code'] == 'DecryptionFailure':
+            print("The requested secret can't be decrypted using the provided KMS key:", e)
+        elif e.response['Error']['Code'] == 'InternalServiceError':
+            print("An error occurred on service side:", e)
+    else:
+        # Secrets Manager decrypts the secret value using the associated KMS CMK
+        # Depending on whether the secret was a string or binary, only one of these fields will be populated
+        if 'SecretString' in get_secret_value_response:
+            text_secret_data = get_secret_value_response['SecretString']
+    
+    return text_secret_data
+    
 
 
 def lambda_handler():
 
-    region = 'us-east-2'
-    clustername = 'libertex-replica'
-    # key = aws_name ; value = tag value from BC tag
-    extracted_business_contexts = get_ecs_service_bcs(
-        cluster=clustername, ci_tag="application")
-
-    cpu2mem_weight = 0.5
-
-    cluster = ecs_getClusterArn(region, clustername)
-    if not cluster:
-        logging.error("Cluster : %s Missing", clustername)
-        sys.exit(1)
-
-    now = datetime.datetime.now(tz=tzutc()) - timedelta(days=1)
-    yesterday = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days = 1)
-
-    dynamodb = boto3.resource("dynamodb", region_name=region)
-    table = dynamodb.Table("ECSTaskStatus")
-
-    payload = list()
-
-    for aws_ecs_name, bc_name in extracted_business_contexts.items():
-
-        tasks = get(table=table, region=region, cluster=cluster, service=aws_ecs_name)
-
-        (meter_start_t1, meter_end_t1) = get_datetime_start_end(yesterday, None, "01", None)
-        (fg_cpu, fg_mem, ec2_mem, ec2_cpu) = cost_of_service(tasks, meter_start_t1, meter_end_t1, yesterday)
-
-        if ec2_mem or ec2_cpu:
-            serviceCost = float(ec2_mem+ec2_cpu)
+    session = boto3.session.Session()
+    region = session.region_name
+    clusterList = get_cluster_names(region)
 
 
+    for clustername in clusterList:
 
-        entryId = uuid.uuid3(uuid.NAMESPACE_DNS, bc_name[0])
-        print(entryId)
+        # key = aws_name ; value = tag value from BC tag
+        extracted_business_contexts = get_ecs_service_bcs(
+            cluster=clustername, ci_tag="application")
 
-        bc_cost = {
-            "type": "ECSMeteringCost",
-            "id": str(entryId),
-            "data": {
-                "totalCloudCostsYesterday": serviceCost,
-                "application": bc_name[1],
-                "datetime": yesterday.strftime("%Y-%m-%dT00:00:00"),
-                "serviceId": bc_name[0],
-            }
+        cpu2mem_weight = 0.5
+
+        cluster = ecs_getClusterArn(region, clustername)
+        if not cluster:
+            logging.error("Cluster : %s Missing", clustername)
+            sys.exit(1)
+
+        now = datetime.datetime.now(tz=tzutc()) - timedelta(days=1)
+        yesterday = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days = 1)
+        day_2 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days = 2)
+        day_3 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days = 3)
+
+        dates = [yesterday, day_2, day_3]
+
+        dynamodb = boto3.resource("dynamodb", region_name=region)
+        table = dynamodb.Table("ECSTaskStatus")
+
+        payload = list()
+
+        for aws_ecs_name, bc_name in extracted_business_contexts.items():
+
+            tasks = get(table=table, region=region, cluster=cluster, service=aws_ecs_name)
+
+            for day in dates:
+
+                (meter_start_t1, meter_end_t1) = get_datetime_start_end(day, None, "01", None)
+                (fg_cpu, fg_mem, ec2_mem, ec2_cpu) = cost_of_service(tasks, meter_start_t1, meter_end_t1, day)
+
+                if ec2_mem or ec2_cpu:
+                    serviceCost = float(ec2_mem+ec2_cpu)
+
+                entryId = uuid.uuid3(uuid.NAMESPACE_DNS, bc_name[0]+str(day.timestamp() * 1000))
+
+                bc_cost = {
+                    "type": "ECSMeteringCost",
+                    "id": str(entryId),
+                    "data": {
+                        "totalCloudCostsYesterday": serviceCost,
+                        "application": bc_name[1],
+                        "datetime": day.strftime("%Y-%m-%dT00:00:00"),
+                        "serviceId": bc_name[0],
+                    }
+                }
+                payload.append(bc_cost)
+
+        ldif = {
+            "connectorType": "leanix-custom",
+            "connectorId": "ecs-cost-distribution",
+            "connectorVersion": "1.0.0",
+            "lxVersion": "1.0.0",
+            "description": "Approximated distribution of ECS Service cost by Business Context",
+            "processingDirection": "inbound",
+            "content": payload
         }
-        payload.append(bc_cost)
 
-    ldif = {
-        "connectorType": "leanix-custom",
-        "connectorId": "ecs-cost-distribution",
-        "connectorVersion": "1.0.0",
-        "lxVersion": "1.0.0",
-        "description": "Approximated distribution of ECS Service cost by Business Context",
-        "processingDirection": "inbound",
-        "content": payload
-    }
-
-    tmpPrefix = "/tmp/"
     s3 = boto3.client('s3')
     with open("ldif.json", "w+") as f:
         json.dump(obj=ldif,fp= f, indent=4)
@@ -438,9 +493,12 @@ def lambda_handler():
     with open('ldif.json', 'rb') as fh:
         s3.upload_fileobj(fh, "ecsbucktforldif", filename)
 
-    
-    #call_iapi(ldif=ldif)
-    print('done')
+
+    secret = json.loads(get_secret())
+    host = secret["host"]
+    token = secret["token"]
+    call_iapi(ldif=ldif, host=host, token=token)
+
 
 
 lambda_handler()

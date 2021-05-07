@@ -1,4 +1,3 @@
-
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 import ast
@@ -311,13 +310,15 @@ def get_ecs_service_bcs(cluster: str, ci_tag: str):
     services = ecs.list_services(cluster=cluster, launchType="EC2")[
         'serviceArns']
 
-    service_details = ecs.describe_services(cluster=cluster, services=services, include=['TAGS'])[
-        'services']  # TODO: can only get 10 services at a time
+    service_details = []
+    for service in services:
+        service_details.append(ecs.describe_services(cluster=cluster, services=[service], include=['TAGS'])[
+        'services'][0])
+
 
     business_contexts = {}
 
     for serv in service_details:
-
         try:
             if serv['status'] == "ACTIVE":
                 for x in serv['tags']:
@@ -333,13 +334,13 @@ def get_ecs_service_bcs(cluster: str, ci_tag: str):
     return business_contexts
 
 
-def call_iapi(ldif:dict):
+def call_iapi(ldif:dict, host: str, token: str):
 
-    auth_url = 'https://demo-eu.leanix.net/services/mtm/v1/oauth2/token'
-    request_url = 'https://demo-eu.leanix.net/services/integration-api/v1/synchronizationRuns?start=false&test=false'
+    auth_url = 'https://'+host+'/services/mtm/v1/oauth2/token'
+    request_url = 'https://'+host+'/services/integration-api/v1/synchronizationRuns?start=false&test=false'
 
     # token = os.environ['leanix_api_key']
-    token = "bdPzZ9gZXWcCgCqqH5HBtFCrEOWJcuMEJMBkLAgg"
+    token = token
 
     response = requests.post(auth_url, auth=('apitoken', token),
                              data={'grant_type': 'client_credentials'})
@@ -357,13 +358,15 @@ def call_iapi(ldif:dict):
     request_url_update = 'https://demo-eu.leanix.net/services/integration-api/v1/synchronizationRuns/'+id+'/start?test=false'
     print(request_url_update)
     r = requests.post(request_url_update, json=ldif, headers=header)
-    
+ 
+ 
 def generateRandomNumber(digits):
     finalNumber = ""
     for i in range(digits // 16):
         finalNumber = finalNumber + str(math.floor(random.random() * 10000000000000000))
     finalNumber = finalNumber + str(math.floor(random.random() * (10 ** (digits % 16))))
     return int(finalNumber)    
+
 
 def get_cluster_names(region: str):
     ecs = boto3.client("ecs")
@@ -377,68 +380,92 @@ def get_cluster_names(region: str):
     return clusters_in_region
 
 
+def get_secret():
+    secret_name = "leanixsecret"
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=session.region_name,
+    )
+
+    get_secret_value_response = client.get_secret_value(
+        SecretId=secret_name
+    )
+
+    if 'SecretString' in get_secret_value_response:
+        text_secret_data = get_secret_value_response['SecretString']
+    
+    return text_secret_data
+    
+
+
 def lambda_handler(event, context):
 
-    region = 'us-east-2'
-    clustername = 'libertex-replica'
-    # key = aws_name ; value = tag value from BC tag
-    extracted_business_contexts = get_ecs_service_bcs(
-        cluster=clustername, ci_tag="application")
+    session = boto3.session.Session()
+    region = session.region_name
+    clusterList = get_cluster_names(region)
 
-    cpu2mem_weight = 0.5
 
-    cluster = ecs_getClusterArn(region, clustername)
-    if not cluster:
-        logging.error("Cluster : %s Missing", clustername)
-        sys.exit(1)
+    for clustername in clusterList:
 
-    now = datetime.datetime.now(tz=tzutc()) - timedelta(days=1)
-    yesterday = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days = 1)
-    day_2 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days = 2)
-    day_3 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days = 3)
+        # key = aws_name ; value = tag value from BC tag
+        extracted_business_contexts = get_ecs_service_bcs(
+            cluster=clustername, ci_tag="application")
 
-    dates = [yesterday, day_2, day_3]
+        cpu2mem_weight = 0.5
 
-    dynamodb = boto3.resource("dynamodb", region_name=region)
-    table = dynamodb.Table("ECSTaskStatus")
+        cluster = ecs_getClusterArn(region, clustername)
+        if not cluster:
+            logging.error("Cluster : %s Missing", clustername)
+            sys.exit(1)
 
-    payload = list()
+        now = datetime.datetime.now(tz=tzutc()) - timedelta(days=1)
+        yesterday = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days = 1)
+        day_2 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days = 2)
+        day_3 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days = 3)
 
-    for aws_ecs_name, bc_name in extracted_business_contexts.items():
+        dates = [yesterday, day_2, day_3]
 
-        tasks = get(table=table, region=region, cluster=cluster, service=aws_ecs_name)
+        dynamodb = boto3.resource("dynamodb", region_name=region)
+        table = dynamodb.Table("ECSTaskStatus")
 
-        for day in dates:
+        payload = list()
 
-            (meter_start_t1, meter_end_t1) = get_datetime_start_end(day, None, "01", None)
-            (fg_cpu, fg_mem, ec2_mem, ec2_cpu) = cost_of_service(tasks, meter_start_t1, meter_end_t1, day)
+        for aws_ecs_name, bc_name in extracted_business_contexts.items():
 
-            if ec2_mem or ec2_cpu:
-                serviceCost = float(ec2_mem+ec2_cpu)
+            tasks = get(table=table, region=region, cluster=cluster, service=aws_ecs_name)
 
-            entryId = uuid.uuid3(uuid.NAMESPACE_DNS, bc_name[0]+str(day.timestamp() * 1000))
+            for day in dates:
 
-            bc_cost = {
-                "type": "ECSMeteringCost",
-                "id": str(entryId),
-                "data": {
-                    "totalCloudCostsYesterday": serviceCost,
-                    "application": bc_name[1],
-                    "datetime": day.strftime("%Y-%m-%dT00:00:00"),
-                    "serviceId": bc_name[0],
+                (meter_start_t1, meter_end_t1) = get_datetime_start_end(day, None, "01", None)
+                (fg_cpu, fg_mem, ec2_mem, ec2_cpu) = cost_of_service(tasks, meter_start_t1, meter_end_t1, day)
+
+                if ec2_mem or ec2_cpu:
+                    serviceCost = float(ec2_mem+ec2_cpu)
+
+                entryId = uuid.uuid3(uuid.NAMESPACE_DNS, bc_name[0]+str(day.timestamp() * 1000))
+
+                bc_cost = {
+                    "type": "ECSMeteringCost",
+                    "id": str(entryId),
+                    "data": {
+                        "totalCloudCostsYesterday": serviceCost,
+                        "application": bc_name[1],
+                        "datetime": day.strftime("%Y-%m-%dT00:00:00"),
+                        "serviceId": bc_name[0],
+                    }
                 }
-            }
-            payload.append(bc_cost)
+                payload.append(bc_cost)
 
-    ldif = {
-        "connectorType": "leanix-custom",
-        "connectorId": "ecs-cost-distribution",
-        "connectorVersion": "1.0.0",
-        "lxVersion": "1.0.0",
-        "description": "Approximated distribution of ECS Service cost by Business Context",
-        "processingDirection": "inbound",
-        "content": payload
-    }
+        ldif = {
+            "connectorType": "leanix-custom",
+            "connectorId": "ecs-cost-distribution",
+            "connectorVersion": "1.0.0",
+            "lxVersion": "1.0.0",
+            "description": "Approximated distribution of ECS Service cost by Business Context",
+            "processingDirection": "inbound",
+            "content": payload
+        }
 
     s3 = boto3.client('s3')
     with open("/tmp/ldif.json", "w+") as f:
@@ -448,8 +475,10 @@ def lambda_handler(event, context):
     date = datetime.datetime.now().strftime("%Y-%m-%d%H:%M")
     filename = "ldif_"+date+".json"
     with open('/tmp/ldif.json', 'rb') as fh:
-        s3.upload_fileobj(fh, "ecsbucktforldif1", filename)
+        s3.upload_fileobj(fh, "ecsbucktforldif", filename)
 
-    
-    call_iapi(ldif=ldif)
-    print('done')
+
+    secret = json.loads(get_secret())
+    host = secret["host"]
+    token = secret["token"]
+    call_iapi(ldif=ldif, host=host, token=token)
