@@ -11,3 +11,16 @@ resource "aws_dynamodb_table" "task_states" {
     type = "S"
   }
 }
+
+resource "aws_dynamodb_table" "db_init" {
+  name           = "initDB"
+  hash_key       = "id"
+  billing_mode   = "PROVISIONED"
+  write_capacity = 10
+  read_capacity  = 20
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+}

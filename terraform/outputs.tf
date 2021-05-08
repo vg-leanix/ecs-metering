@@ -10,7 +10,7 @@ output "lambda_chargeback_arn" {
 
 output "task_states_db" {
   description = "ARN of DynamoDB to capture task states"
-  value       = module.dynamodb.dynamodb_arn
+  value       = module.dynamodb.taskdb_arn
 }
 
 output "cloudwatch_event_rule_arn" {
