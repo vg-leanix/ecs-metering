@@ -549,8 +549,8 @@ def lambda_handler(event, context):
     clusterList = get_cluster_names(region)
 
     db = boto3.resource('dynamodb')
-    table = db.table('initDB')
-    initialised = Table.scan(
+    table = db.Table('initDB')
+    initialised = table.scan(
         FilterExpression=Attr('initialized').eq(True) 
     )['Items']
 
