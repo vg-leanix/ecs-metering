@@ -13,6 +13,11 @@ output "task_states_db" {
   value       = module.dynamodb.taskdb_arn
 }
 
+output "initDB_state_db" {
+  description = "ARN of DynamoDB to capture task states"
+  value       = module.dynamodb.initdb_state
+}
+
 output "cloudwatch_event_rule_arn" {
   description = "ARN of CloudWatch event rule"
   value       = module.cloudwatch_metering.event_rule_arn
