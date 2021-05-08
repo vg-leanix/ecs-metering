@@ -4,7 +4,7 @@ test.json
 .DS_Store
 env
 package
-*zip
+*.zip
 lambda_layers
 *.drawio
 .vscode

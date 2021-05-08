@@ -23,7 +23,8 @@ module "s3_ldif" {
 module "chargeback_lambda" {
   source = "./modules/lambda/chargeback_lambda"
 
-  exec_role = module.iam.lambda_iam_role_arn
+  exec_role   = module.iam.lambda_iam_role_arn
+  name_secret = module.aws_secretsmanager_secret.secret_name
 
 }
 
@@ -50,7 +51,7 @@ module "cloudwatch_chargeback" {
 
 module "aws_secretsmanager_secret_version" {
   source = "./modules/secret-manager/secret"
-  
+
   id = module.aws_secretsmanager_secret.secret_version_id
 }
 

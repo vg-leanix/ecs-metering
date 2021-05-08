@@ -386,7 +386,7 @@ def get_cluster_names(region: str):
 
 
 def get_secret():
-    secret_name = "leanixsecret"
+    secret_name = os.environ.get('secret_name')
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',

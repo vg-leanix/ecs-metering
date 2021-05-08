@@ -56,7 +56,11 @@ resource "aws_iam_policy" "lambda_ecs_status" {
                 "secretsmanager:GetResourcePolicy",
                 "secretsmanager:GetSecretValue",
                 "secretsmanager:DescribeSecret",
-                "secretsmanager:ListSecretVersionIds"
+                "secretsmanager:ListSecretVersionIds",
+                "kms:GenerateDataKey",
+                "kms:Encrypt",
+                "kms:Decrypt"
+
             ],
             "Resource": [
                 "*"

@@ -3,3 +3,9 @@ variable "exec_role" {
   type = string
 
 }
+
+variable "name_secret" {
+  description = "Name of the secret to create as env variable"
+  type = string
+
+}
