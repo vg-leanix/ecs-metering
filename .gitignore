@@ -9,3 +9,4 @@ lambda_layers
 *.drawio
 .vscode
 ldif.json
+*.tfstate
