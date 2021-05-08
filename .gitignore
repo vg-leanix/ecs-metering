@@ -8,3 +8,4 @@ package
 lambda_layers
 *.drawio
 .vscode
+ldif.json
