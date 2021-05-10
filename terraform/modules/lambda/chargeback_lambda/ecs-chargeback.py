@@ -11,7 +11,6 @@ import requests
 import logging
 import json
 import os
-import datetime
 import math
 import random
 import uuid
@@ -500,8 +499,6 @@ def getInstanceType(region, cluster, instance, launchType):
 def init_db(region: str):
 
     
-   
-
     ecs = boto3.client("ecs", region_name=region)
     response = ecs.list_clusters()
 
@@ -548,14 +545,7 @@ def lambda_handler(event, context):
     region = session.region_name
     clusterList = get_cluster_names(region)
 
-    db = boto3.resource('dynamodb')
-    table = db.Table('initDB')
-    initialised = table.scan(
-        FilterExpression=Attr('initialized').eq(True) 
-    )['Items']
-
-    if not initialised:
-        init_db(region=region)
+    
     
 
     for clustername in clusterList:
