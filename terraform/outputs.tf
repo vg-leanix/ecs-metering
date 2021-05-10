@@ -18,12 +18,12 @@ output "initDB_state_db" {
   value       = module.dynamodb.initdb_state
 }
 
-output "cloudwatch_event_rule_arn" {
+output "cloudwatch_event_rule_metering" {
   description = "ARN of CloudWatch event rule"
   value       = module.cloudwatch_metering.event_rule_arn
 }
 
-output "cloudwatch_event_rule_run_daily" {
+output "cloudwatch_event_rule_chargeback" {
   description = "ARN of CloudWatch event rule"
   value       = module.cloudwatch_chargeback.event_rule_arn
 }

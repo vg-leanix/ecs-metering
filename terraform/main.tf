@@ -7,7 +7,6 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-2"
 }
 
 module "metering_lambda" {

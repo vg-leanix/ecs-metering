@@ -7,7 +7,8 @@ variable "id" {
 variable "credentials" {
   default = {
     host = "demo-eu.leanix.net"
-    token = ""
+    token = "",
+    busniesscontext = ""
   }
 
   type = map(string)

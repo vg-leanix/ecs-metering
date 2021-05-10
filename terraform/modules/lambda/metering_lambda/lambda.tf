@@ -15,6 +15,6 @@ resource "aws_lambda_function" "metering" {
   source_code_hash = data.archive_file.zip.output_base64sha256
   handler       = "ecsTaskStatus.lambda_handler"
   runtime       = "python3.7"
-
+  timeout          = 30
 }
 

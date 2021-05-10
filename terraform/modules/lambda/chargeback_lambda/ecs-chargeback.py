@@ -545,14 +545,14 @@ def lambda_handler(event, context):
     region = session.region_name
     clusterList = get_cluster_names(region)
 
-    
-    
+    secret = json.loads(get_secret())
+    token = secret["busniesscontext"]
 
     for clustername in clusterList:
 
         # key = aws_name ; value = tag value from BC tag
         extracted_business_contexts = get_ecs_service_bcs(
-            cluster=clustername, ci_tag="application")
+            cluster=clustername, ci_tag=token)
 
         cpu2mem_weight = 0.5
 
@@ -624,7 +624,6 @@ def lambda_handler(event, context):
     with open('/tmp/ldif.json', 'rb') as fh:
         s3.upload_fileobj(fh, "ecsbucktforldif", filename)
 
-    secret = json.loads(get_secret())
     host = secret["host"]
     token = secret["token"]
     call_iapi(ldif=ldif, host=host, token=token)
