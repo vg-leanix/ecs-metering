@@ -2,17 +2,10 @@ import json
 import boto3
 from boto3.session import Session
 import datetime
-
-# Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# Licensed under the Apache License, Version 2.0 (the "License").
-# You may not use this file except in compliance with the License.
-# A copy of the License is located at
-#
-#     http://aws.amazon.com/apache2.0/
-#
-# or in the "license" file accompanying this file.
-# This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and limitations under the License.
+import uuid
+import datetime
+from datetime import timedelta
+from dateutil.tz import *
 
 
 def lambda_handler(event, context):
@@ -22,6 +15,19 @@ def lambda_handler(event, context):
     # For debugging so you can see raw event format.
     print('Here is the event:')
     print(json.dumps(event))
+    
+    session = boto3.session.Session()
+    region = session.region_name
+
+    db = boto3.resource('dynamodb')
+    table = db.Table('initDB')
+    initialised = table.scan(
+        FilterExpression=Attr('initialized').eq(True) 
+    )['Items']
+
+    if not initialised:
+        init_db(region=region)
+
 
     if event["source"] != "aws.ecs" and event["detail-type"] != "ECS Task State Change":
         raise ValueError("Function only supports input from events with a source type of: aws.ecs and of type - ECS Task State Change -")
@@ -133,3 +139,97 @@ def getRunTime(startTime, stopTime):
     stop = datetime.datetime.strptime(stopTime, '%Y-%m-%dT%H:%M:%S.%fZ')
     runTime = (stop-start).total_seconds()
     return int(round((runTime)))
+
+def putTasks(region, cluster, task):
+    id_name = 'taskArn'
+    task_id = task["taskArn"]
+    new_record = {}
+
+    dynamodb = boto3.resource("dynamodb", region_name=region)
+    table = dynamodb.Table("ECSTaskStatus")
+    saved_task = table.get_item(Key={id_name: task_id})
+
+    # Look first to see if you have received this taskArn before.
+    # If not,
+    #   - you are getting a new task - i.e. the script is being run for the first time.
+    #   - store its details in DDB
+    # If yes,
+    #   - the script is being run after the solution has been deployed.
+    #   - dont do anything. quit.
+    if "Item" in saved_task:
+        print("Task: %s already in the DynamoDB table." % (task_id))
+        return 1
+    else:
+        new_record["launchType"] = task["launchType"]
+        new_record["region"] = region
+        new_record["clusterArn"] = task["clusterArn"]
+        new_record["cpu"] = task["cpu"]
+        new_record["memory"] = task["memory"]
+        if new_record["launchType"] == 'FARGATE':
+            new_record["containerInstanceArn"] = 'INSTANCE_ID_UNKNOWN'
+            (new_record['instanceType'], new_record['osType'], new_record['instanceId']) = (
+                'INSTANCE_TYPE_UNKNOWN', 'linux', 'INSTANCE_ID_UNKNOWN')
+        else:
+            new_record["containerInstanceArn"] = task["containerInstanceArn"]
+            (new_record['instanceType'], new_record['osType'], new_record['instanceId']) = getInstanceType(
+                region, task['clusterArn'], task['containerInstanceArn'], task['launchType'])
+
+        if ':' in task["group"]:
+            new_record["group"], new_record["groupName"] = task["group"].split(
+                ':')
+        else:
+            new_record["group"], new_record["groupName"] = 'taskgroup', task["group"]
+
+        # Convert startedAt time to UTC from local timezone. The time returned from ecs_describe_tasks() will be in local TZ.
+        startedAt = task["startedAt"].astimezone(tzutc())
+        new_record["startedAt"] = datetime.datetime.strftime(
+            startedAt, '%Y-%m-%dT%H:%M:%S.%fZ')
+        new_record["taskArn"] = task_id
+        new_record['stoppedAt'] = 'STILL-RUNNING'
+        new_record['runTime'] = 0
+
+        table.put_item(Item=new_record)
+        return 0
+
+def init_db(region: str):
+
+    
+    ecs = boto3.client("ecs", region_name=region)
+    response = ecs.list_clusters()
+
+    clusters = []
+    if 'clusterArns' in response and response['clusterArns']:
+        clusters = response['clusterArns']
+
+    tasks = []
+    for cluster in clusters:
+        nextToken = ''
+        while True:
+            response = ecs.list_tasks(
+                cluster=cluster, maxResults=100, nextToken=nextToken)
+            tasks = tasks + [(cluster, taskArn)
+                             for taskArn in response['taskArns']]
+            if 'nextToken' in response and response['nextToken']:
+                nextToken = response['nextToken']
+            else:
+                break
+
+    for (cluster, task) in tasks:
+        # Use range function to get maybe 10 tasks at a time.
+        # taskDetails = ecs.describe_tasks(cluster=cluster, tasks=[task])
+
+        taskDetails = ecs.describe_tasks(cluster=cluster, tasks=[task])
+
+        # Get all tasks in the cluster and make an entry in DDB.
+        tasks = putTasks(region, cluster, taskDetails['tasks'][0])
+
+    db = boto3.resource('dynamodb')
+    table = db.Table('initDB')
+
+    table.put_item(
+        Item={
+            'id':uuid.uuid4().hex,
+            'initialized':True,
+            'date':datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        }
+    )
