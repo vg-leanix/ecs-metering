@@ -1,6 +1,7 @@
 resource "aws_secretsmanager_secret" "leanixsecret" {
-  name = "leanixdata"
+  name = "leanixdatasecret"
+  recovery_window_in_days = 0
   rotation_rules {
-    automatically_after_days = 0
+    automatically_after_days = 7
   }
 }
