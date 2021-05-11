@@ -1,7 +1,7 @@
 resource "aws_cloudwatch_event_rule" "run_daily" {
     name = "ComputeECSCostDaily"
     description = "Compute ECS Services daily and export to LeanIX CI workspace"
-    schedule_expression = "cron(7 00 * * ? *)"
+    schedule_expression = "cron(15 00 * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "ecs-chargeback_every_day" {
