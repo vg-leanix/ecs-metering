@@ -323,9 +323,7 @@ def get_ecs_service_bcs(cluster: str, ci_tag: str):
                 for x in serv['tags']:
                     if x['key'] == ci_tag:
                         business_context = x['value']
-
-                business_contexts[serv['serviceName']] = (
-                    serv['serviceArn'], business_context)
+                        business_contexts[serv['serviceName']] = (serv['serviceArn'], business_context)    
 
         except KeyError:
             srv_name = serv['serviceName']
