@@ -1,5 +1,7 @@
+data "aws_region" "current" {}
+
 resource "aws_iam_policy" "lambda_ecs_status" {
-  name        = "LambdaECSTaskStatusPolicy"
+  name        = "LambdaECSTaskStatusPolicy-${data.aws_region.current.name}"
   description = "allows the Lambda function to make API calls"
   policy      = jsonencode({
     "Version": "2012-10-17",
@@ -73,7 +75,7 @@ resource "aws_iam_policy" "lambda_ecs_status" {
 
 
 resource "aws_iam_role" "lambda_task_role" {
-  name = "LambdaECSTaskStatusRole"
+  name = "LambdaECSTaskStatusRole-${data.aws_region.current.name}"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : {
