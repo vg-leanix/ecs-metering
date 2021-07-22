@@ -24,6 +24,7 @@ module "chargeback_lambda" {
 
   exec_role   = module.iam.lambda_iam_role_arn
   name_secret = module.aws_secretsmanager_secret.secret_name
+  bucket_name = module.s3_ldif.bucket_name
 
 }
 

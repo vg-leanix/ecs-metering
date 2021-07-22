@@ -278,6 +278,8 @@ def cost_of_fgtask(region, cpu, memory, ostype, runTime):
 
 
 def cost_of_service(tasks, meter_start, meter_end, now):
+    print('Period from: ' + str(meter_start) + 'to: ' + str(meter_end))
+
     fargate_service_cpu_cost = 0.0
     fargate_service_mem_cost = 0.0
     ec2_service_cpu_cost = 0.0
@@ -287,6 +289,8 @@ def cost_of_service(tasks, meter_start, meter_end, now):
         for task in tasks['Items']:
             runTime = duration(task['startedAt'], task['stoppedAt'],
                                meter_start, meter_end, float(task['runTime']), now)
+
+            print('runtime: ' + str(runTime))
 
             logging.debug("In cost_of_service: runTime = %f seconds", runTime)
             if task['launchType'] == 'FARGATE':
@@ -300,6 +304,9 @@ def cost_of_service(tasks, meter_start, meter_end, now):
                     task['region'], task['cpu'], task['memory'], task['osType'], task['instanceType'], runTime)
                 ec2_service_mem_cost += ec2_mem_charges
                 ec2_service_cpu_cost += ec2_cpu_charges
+                print('ec2 service memory cost: ' + str(ec2_service_mem_cost))
+                print('ec2 service cpu cost: ' + str(ec2_service_cpu_cost))
+
 
     return(fargate_service_cpu_cost, fargate_service_mem_cost, ec2_service_mem_cost, ec2_service_cpu_cost)
 
@@ -327,7 +334,7 @@ def get_ecs_service_bcs(cluster: str, ci_tag: str):
 
         except KeyError:
             srv_name = serv['serviceName']
-            print(f'{srv_name} has no tags')
+            print(f'The service: {srv_name} has no tags or does not have a Business Context tag')
 
     return business_contexts
 
@@ -356,7 +363,8 @@ def call_iapi(ldif: dict, host: str, token: str):
     id = jsonBody["id"]
     request_url_update = 'https://demo-eu.leanix.net/services/integration-api/v1/synchronizationRuns/' + \
         id+'/start?test=false'
-    print(request_url_update)
+    #print(request_url_update)
+    print("Pushing data to LeanIX workspace")
     r = requests.post(request_url_update, json=ldif, headers=header)
 
 
@@ -561,8 +569,8 @@ def lambda_handler(event, context):
 
         now = datetime.datetime.now(tz=tzutc()) - timedelta(days=1)
         yesterday = datetime.datetime.now(
-            tz=tzutc()) - datetime.timedelta(days=1)
-        day_2 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=2)
+            tz=tzutc()) - datetime.timedelta(days=0)
+        day_2 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=0)
         day_3 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=3)
 
         dates = [yesterday, day_2, day_3]
@@ -570,9 +578,10 @@ def lambda_handler(event, context):
         dynamodb = boto3.resource("dynamodb", region_name=region)
         table = dynamodb.Table("ECSTaskStatus")
 
-        payload = list()
 
+        payload = list()
         for aws_ecs_name, bc_name in extracted_business_contexts.items():
+            print('Starting for Business Context: ' + str(bc_name[1]))
 
             tasks = get(table=table, region=region,
                         cluster=cluster, service=aws_ecs_name)
@@ -585,43 +594,47 @@ def lambda_handler(event, context):
                     tasks, meter_start_t1, meter_end_t1, day)
 
                 if ec2_mem or ec2_cpu:
-                    serviceCost = float(ec2_mem+ec2_cpu)
+                    serviceCost = ec2_mem+ec2_cpu
+                    print('Total cost of service: ' + str(serviceCost))
 
-                entryId = uuid.uuid3(uuid.NAMESPACE_DNS,
-                                     bc_name[0]+str(day.timestamp() * 1000))
+                    entryId = uuid.uuid3(uuid.NAMESPACE_DNS,
+                                        bc_name[0]+str(day.timestamp() * 1000))
 
-                bc_cost = {
-                    "type": "ECSMeteringCost",
-                    "id": str(entryId),
-                    "data": {
-                        "totalCloudCostsYesterday": serviceCost,
-                        "application": bc_name[1],
-                        "datetime": day.strftime("%Y-%m-%dT00:00:00"),
-                        "serviceId": bc_name[0],
+                    bc_cost = {
+                        "type": "ECSMeteringCost",
+                        "id": str(entryId),
+                        "data": {
+                            "totalCloudCostsYesterday": serviceCost,
+                            "application": bc_name[1],
+                            "datetime": day.strftime("%Y-%m-%dT00:00:00"),
+                            "serviceId": bc_name[0],
+                        }
                     }
-                }
-                payload.append(bc_cost)
+                    payload.append(bc_cost)
+            ldif = {
+                "connectorType": "leanix-custom",
+                "connectorId": "ecs-cost-distribution",
+                "connectorVersion": "1.0.0",
+                "lxVersion": "1.0.0",
+                "description": "Approximated distribution of ECS Service cost by Business Context",
+                "processingDirection": "inbound",
+                "content": payload
+            }
 
-        ldif = {
-            "connectorType": "leanix-custom",
-            "connectorId": "ecs-cost-distribution",
-            "connectorVersion": "1.0.0",
-            "lxVersion": "1.0.0",
-            "description": "Approximated distribution of ECS Service cost by Business Context",
-            "processingDirection": "inbound",
-            "content": payload
-        }
+            s3 = boto3.client('s3')
+            with open("/tmp/ldif.json", "w+") as f:
+                json.dump(obj=ldif, fp=f, indent=4)
+                os.chmod("/tmp/ldif.json", 0o777)
 
-    s3 = boto3.client('s3')
-    with open("/tmp/ldif.json", "w+") as f:
-        json.dump(obj=ldif, fp=f, indent=4)
-        os.chmod("/tmp/ldif.json", 0o777)
+            date = datetime.datetime.now().strftime("%Y-%m-%d%H:%M")
+            filename = "ldif_"+date+".json"
 
-    date = datetime.datetime.now().strftime("%Y-%m-%d%H:%M")
-    filename = "ldif_"+date+".json"
-    with open('/tmp/ldif.json', 'rb') as fh:
-        s3.upload_fileobj(fh, "ecsbucktforldif", filename)
+            bucketName = os.environ.get('bucket_name')
 
-    host = secret["host"]
-    token = secret["token"]
-    call_iapi(ldif=ldif, host=host, token=token)
+            with open('/tmp/ldif.json', 'rb') as fh:
+                s3.upload_fileobj(fh, bucketName, filename)
+
+            host = secret["host"]
+            token = secret["token"]
+            call_iapi(ldif=ldif, host=host, token=token)
+        

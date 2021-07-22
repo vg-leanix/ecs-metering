@@ -17,7 +17,10 @@ resource "aws_lambda_function" "chargeback" {
   runtime          = "python3.7"
   timeout          = 30
   environment {
-    variables = { secret_name : var.name_secret }
+    variables = { 
+      secret_name : var.name_secret,
+      bucket_name: var.bucket_name
+    }
   }
 }
 
