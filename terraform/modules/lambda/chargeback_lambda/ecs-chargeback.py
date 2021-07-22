@@ -19,6 +19,26 @@ cpu2mem_weight = 0.5
 pricing_dict = {}
 region_table = {}
 container_instance_ec2_mapping = {}
+aws_regions = {
+    "us-east-1": "US East (N. Virginia)",
+    "us-east-2": "US East (Ohio)",
+    "us-west-1": "US West (N. California)",
+    "us-west-2": "US West (Oregon)",
+    "ca-central-1": "Canada (Central)",
+    "eu-west-1": "EU (Ireland)",
+    "eu-central-1": "EU (Frankfurt)",
+    "eu-west-2": "EU (London)",
+    "eu-west-3": "EU (Paris)",
+    "eu-north-1": "EU (Stockholm)",
+    "ap-northeast-1": "Asia Pacific (Tokyo)",
+    "ap-northeast-2": "Asia Pacific (Seoul)",
+    "ap-southeast-1": "Asia Pacific (Singapore)",
+    "ap-southeast-2": "Asia Pacific (Sydney)",
+    "ap-south-1": "Asia Pacific (Mumbai)",
+    "sa-east-1": "South America (São Paulo)",
+    "us-gov-west-1": "US Gov West 1",
+    "us-gov-east-1": "US Gov East 1"
+}
 
 
 def get(table, region, cluster, service):
@@ -54,13 +74,22 @@ def ec2_pricing(region, instance_type, tenancy, ostype):
     TODO: In the current version, we only consider OnDemand price. If
     we start considering actual cost, we need to consider input from
     CUR on an hourly basis.
+
+    Amazon Web Services Price List Service API provides the following two endpoints:
+        https://api.pricing.us-east-1.amazonaws.com
+        https://api.pricing.ap-south-1.amazonaws.com
+
+    source:
+    https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pricing.html
+
     """
     svc_code = 'AmazonEC2'
+    region_name = str(aws_regions[region])
     client = boto3.client('pricing', region_name="us-east-1")
     response = client.get_products(ServiceCode=svc_code,
                                    Filters=[
                                        {'Type': 'TERM_MATCH', 'Field': 'location',
-                                           'Value': "US EAST (Ohio)"},
+                                           'Value': region_name},
                                        {'Type': 'TERM_MATCH', 'Field': 'servicecode',
                                            'Value': svc_code},
                                        {'Type': 'TERM_MATCH',
@@ -93,7 +122,9 @@ def ec2_pricing(region, instance_type, tenancy, ostype):
             ret_dict['pricePerUnit'] = mydict_terms['priceDimensions'][list(
                 mydict_terms['priceDimensions'].keys())[0]]['pricePerUnit']
             ret_list.append(ret_dict)
-
+    else:
+        print(f"For {region_name} there are no prices via AWS available.")
+        
     ec2_cpu = float(ret_list[0]['vcpu'])
     ec2_mem = float(re.findall("[+-]?\d+\.?\d*", ret_list[0]['memory'])[0])
     ec2_cost = float(ret_list[0]['pricePerUnit']['USD'])
@@ -307,7 +338,6 @@ def cost_of_service(tasks, meter_start, meter_end, now):
                 print('ec2 service memory cost: ' + str(ec2_service_mem_cost))
                 print('ec2 service cpu cost: ' + str(ec2_service_cpu_cost))
 
-
     return(fargate_service_cpu_cost, fargate_service_mem_cost, ec2_service_mem_cost, ec2_service_cpu_cost)
 
 
@@ -330,11 +360,13 @@ def get_ecs_service_bcs(cluster: str, ci_tag: str):
                 for x in serv['tags']:
                     if x['key'] == ci_tag:
                         business_context = x['value']
-                        business_contexts[serv['serviceName']] = (serv['serviceArn'], business_context)    
+                        business_contexts[serv['serviceName']] = (
+                            serv['serviceArn'], business_context)
 
         except KeyError:
             srv_name = serv['serviceName']
-            print(f'The service: {srv_name} has no tags or does not have a Business Context tag')
+            print(
+                f'The service: {srv_name} has no tags or does not have a Business Context tag')
 
     return business_contexts
 
@@ -363,7 +395,7 @@ def call_iapi(ldif: dict, host: str, token: str):
     id = jsonBody["id"]
     request_url_update = 'https://demo-eu.leanix.net/services/integration-api/v1/synchronizationRuns/' + \
         id+'/start?test=false'
-    #print(request_url_update)
+    # print(request_url_update)
     print("Pushing data to LeanIX workspace")
     r = requests.post(request_url_update, json=ldif, headers=header)
 
@@ -504,7 +536,6 @@ def getInstanceType(region, cluster, instance, launchType):
 
 def init_db(region: str):
 
-    
     ecs = boto3.client("ecs", region_name=region)
     response = ecs.list_clusters()
 
@@ -539,11 +570,12 @@ def init_db(region: str):
 
     table.put_item(
         Item={
-            'id':uuid.uuid4().hex,
-            'initialized':True,
-            'date':datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+            'id': uuid.uuid4().hex,
+            'initialized': True,
+            'date': datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         }
     )
+
 
 def lambda_handler(event, context):
 
@@ -553,6 +585,17 @@ def lambda_handler(event, context):
 
     secret = json.loads(get_secret())
     token = secret["busniesscontext"]
+
+    db_res = boto3.resource("dynamodb", region_name=region)
+    table = db_res.Table("initDB")
+
+    #db_client = boto3.client('dynamodb')
+    initialised = table.scan(
+        FilterExpression=Attr('initialized').eq(True))['Items']
+    initialised = initialised[0]['initialized']
+
+    if not initialised:
+        init_db(region=region)
 
     for clustername in clusterList:
 
@@ -578,7 +621,6 @@ def lambda_handler(event, context):
         dynamodb = boto3.resource("dynamodb", region_name=region)
         table = dynamodb.Table("ECSTaskStatus")
 
-
         payload = list()
         for aws_ecs_name, bc_name in extracted_business_contexts.items():
             print('Starting for Business Context: ' + str(bc_name[1]))
@@ -598,7 +640,7 @@ def lambda_handler(event, context):
                     print('Total cost of service: ' + str(serviceCost))
 
                     entryId = uuid.uuid3(uuid.NAMESPACE_DNS,
-                                        bc_name[0]+str(day.timestamp() * 1000))
+                                         bc_name[0]+str(day.timestamp() * 1000))
 
                     bc_cost = {
                         "type": "ECSMeteringCost",
@@ -637,4 +679,3 @@ def lambda_handler(event, context):
             host = secret["host"]
             token = secret["token"]
             call_iapi(ldif=ldif, host=host, token=token)
-        
