@@ -569,8 +569,8 @@ def lambda_handler(event, context):
 
         now = datetime.datetime.now(tz=tzutc()) - timedelta(days=1)
         yesterday = datetime.datetime.now(
-            tz=tzutc()) - datetime.timedelta(days=0)
-        day_2 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=0)
+            tz=tzutc()) - datetime.timedelta(days=1)
+        day_2 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=2)
         day_3 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=3)
 
         dates = [yesterday, day_2, day_3]
