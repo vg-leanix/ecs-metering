@@ -19,6 +19,47 @@ cpu2mem_weight = 0.5
 pricing_dict = {}
 region_table = {}
 container_instance_ec2_mapping = {}
+aws_regions = {
+    "us-east-1": "US East (N. Virginia)",
+    "us-east-2": "US East (Ohio)",
+    "us-west-1": "US West (N. California)",
+    "us-west-2": "US West (Oregon)",
+    "ca-central-1": "Canada (Central)",
+    "eu-west-1": "EU (Ireland)",
+    "eu-central-1": "EU (Frankfurt)",
+    "eu-west-2": "EU (London)",
+    "eu-west-3": "EU (Paris)",
+    "eu-north-1": "EU (Stockholm)",
+    "ap-northeast-1": "Asia Pacific (Tokyo)",
+    "ap-northeast-2": "Asia Pacific (Seoul)",
+    "ap-southeast-1": "Asia Pacific (Singapore)",
+    "ap-southeast-2": "Asia Pacific (Sydney)",
+    "ap-south-1": "Asia Pacific (Mumbai)",
+    "sa-east-1": "South America (São Paulo)",
+    "us-gov-west-1": "US Gov West 1",
+    "us-gov-east-1": "US Gov East 1"
+}
+
+aws_region_prices = {
+    "us-east-1": "US East (Ohio)",
+    "us-east-2": "US East (Ohio)",
+    "us-west-1": "US East (Ohio)",
+    "us-west-2": "US East (Ohio)",
+    "ca-central-1": "US East (Ohio)",
+    "eu-west-1": "US East (Ohio)",
+    "eu-central-1": "US East (Ohio)",
+    "eu-west-2": "US East (Ohio)",
+    "eu-west-3": "US East (Ohio)",
+    "eu-north-1": "US East (Ohio)",
+    "ap-northeast-1": "US East (Ohio)",
+    "ap-northeast-2": "US East (Ohio)",
+    "ap-southeast-1": "US East (Ohio)",
+    "ap-southeast-2": "US East (Ohio)",
+    "ap-south-1": "US East (Ohio)",
+    "sa-east-1": "US East (Ohio)",
+    "us-gov-west-1": "US East (Ohio)",
+    "us-gov-east-1": "US East (Ohio)"
+}
 
 
 def get(table, region, cluster, service):
@@ -56,11 +97,12 @@ def ec2_pricing(region, instance_type, tenancy, ostype):
     CUR on an hourly basis.
     """
     svc_code = 'AmazonEC2'
+    region_name = str(aws_region_prices[region])
     client = boto3.client('pricing', region_name="us-east-1")
     response = client.get_products(ServiceCode=svc_code,
                                    Filters=[
                                        {'Type': 'TERM_MATCH', 'Field': 'location',
-                                           'Value': "US EAST (Ohio)"},
+                                           'Value': region_name},
                                        {'Type': 'TERM_MATCH', 'Field': 'servicecode',
                                            'Value': svc_code},
                                        {'Type': 'TERM_MATCH',
@@ -93,6 +135,9 @@ def ec2_pricing(region, instance_type, tenancy, ostype):
             ret_dict['pricePerUnit'] = mydict_terms['priceDimensions'][list(
                 mydict_terms['priceDimensions'].keys())[0]]['pricePerUnit']
             ret_list.append(ret_dict)
+
+    else:
+        print(f"For the region: {region}, there are no correspanding prices via AWS available.")
 
     ec2_cpu = float(ret_list[0]['vcpu'])
     ec2_mem = float(re.findall("[+-]?\d+\.?\d*", ret_list[0]['memory'])[0])
@@ -227,7 +272,7 @@ def cost_of_ec2task(region, cpu, memory, ostype, instanceType, runTime):
     if pricing_key not in pricing_dict:
         # Workaround for DUBLIN, Shared Tenancy and Linux
         (ec2_cpu, ec2_mem, ec2_cost) = ec2_pricing(
-            "US EAST (Ohio)", instanceType, 'Shared', 'Linux')
+            region, instanceType, 'Shared', 'Linux')
         pricing_dict[pricing_key] = {}
         # Number of CPUs on the EC2 instance
         pricing_dict[pricing_key]['cpu'] = ec2_cpu
@@ -553,6 +598,24 @@ def lambda_handler(event, context):
 
     secret = json.loads(get_secret())
     token = secret["busniesscontext"]
+
+    db_res = boto3.resource("dynamodb", region_name=region)
+    table = db_res.Table("initDB")
+
+    #db_client = boto3.client('dynamodb')
+    initialised = table.scan(
+        FilterExpression=Attr('initialized').eq(True))['Items']
+    #initialised = initialised[0]['initialized']
+
+    if initialised:
+        print("Intialized: " + str(initialised[0]['initialized']))
+
+    if not initialised:
+        print("Intialized: " + 'False')
+        print("Intializing...")
+        init_db(region=region)
+        initialised = table.scan(FilterExpression=Attr('initialized').eq(True))['Items']
+        print("Intialized: " + str(initialised[0]['initialized']))
 
     for clustername in clusterList:
 
