@@ -641,11 +641,11 @@ def lambda_handler(event, context):
             logging.error("Cluster : %s Missing", clustername)
             sys.exit(1)
 
-        now = datetime.datetime.now(tz=tzutc()) - timedelta(days=1)
+        now = datetime.datetime.now(tz=tzutc()) - timedelta(days=0)
         yesterday = datetime.datetime.now(
             tz=tzutc()) - datetime.timedelta(days=1)
-        day_2 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=2)
-        day_3 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=3)
+        day_2 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=0)
+        day_3 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=0)
 
         dates = [yesterday, day_2, day_3]
 
