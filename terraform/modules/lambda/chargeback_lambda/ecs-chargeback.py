@@ -97,12 +97,12 @@ def ec2_pricing(region, instance_type, tenancy, ostype):
     CUR on an hourly basis.
     """
     svc_code = 'AmazonEC2'
-    region_name = str(aws_region_prices[region])
+    region_n = str(aws_region_prices[region])
     client = boto3.client('pricing', region_name="us-east-1")
     response = client.get_products(ServiceCode=svc_code,
                                    Filters=[
                                        {'Type': 'TERM_MATCH', 'Field': 'location',
-                                           'Value': region_name},
+                                           'Value': region_n},
                                        {'Type': 'TERM_MATCH', 'Field': 'servicecode',
                                            'Value': svc_code},
                                        {'Type': 'TERM_MATCH',
@@ -138,10 +138,21 @@ def ec2_pricing(region, instance_type, tenancy, ostype):
 
     else:
         print(f"For the region: {region}, there are no correspanding prices via AWS available.")
-
-    ec2_cpu = float(ret_list[0]['vcpu'])
-    ec2_mem = float(re.findall("[+-]?\d+\.?\d*", ret_list[0]['memory'])[0])
-    ec2_cost = float(ret_list[0]['pricePerUnit']['USD'])
+    
+    ec2_cpu = '0'
+    ec2_mem = '0 GiB'
+    ec2_cost = '0.0000000000'
+    
+    i = 0
+    foundCost = 0
+    while i < len(ret_list) or foundCost == 0:
+        if (ret_list[i]['pricePerUnit']['USD'] != '0.0000000000'):
+            ec2_cpu = float(ret_list[i]['vcpu'])
+            ec2_mem = float(re.findall("[+-]?\d+\.?\d*", ret_list[i]['memory'])[0])
+            ec2_cost = float(ret_list[i]['pricePerUnit']['USD'])
+            foundCost = 1
+        i += 1
+    
     return(ec2_cpu, ec2_mem, ec2_cost)
 
 
@@ -632,9 +643,9 @@ def lambda_handler(event, context):
 
         now = datetime.datetime.now(tz=tzutc()) - timedelta(days=1)
         yesterday = datetime.datetime.now(
-            tz=tzutc()) - datetime.timedelta(days=1)
-        day_2 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=2)
-        day_3 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=3)
+            tz=tzutc()) - datetime.timedelta(days=0)
+        day_2 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=0)
+        day_3 = datetime.datetime.now(tz=tzutc()) - datetime.timedelta(days=0)
 
         dates = [yesterday, day_2, day_3]
 
