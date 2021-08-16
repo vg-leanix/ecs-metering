@@ -112,7 +112,9 @@ def ec2_pricing(region, instance_type, tenancy, ostype):
                                        {'Type': 'TERM_MATCH', 'Field': 'instanceType',
                                            'Value': instance_type},
                                        {'Type': 'TERM_MATCH',
-                                           'Field': 'operatingSystem',  'Value': ostype}
+                                           'Field': 'operatingSystem',  'Value': ostype},
+                                       {'Type': 'TERM_MATCH',
+                                           'Field': 'capacitystatus',  'Value': 'Used'}
                                    ],
                                    MaxResults=100
                                    )
