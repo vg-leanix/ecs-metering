@@ -138,11 +138,11 @@ def ec2_pricing(region, instance_type, tenancy, ostype):
 
     else:
         print(f"For the region: {region}, there are no correspanding prices via AWS available.")
-    
+
     ec2_cpu = '0'
     ec2_mem = '0 GiB'
     ec2_cost = '0.0000000000'
-    
+
     i = 0
     foundCost = 0
     while i < len(ret_list) or foundCost == 0:
@@ -152,7 +152,7 @@ def ec2_pricing(region, instance_type, tenancy, ostype):
             ec2_cost = float(ret_list[i]['pricePerUnit']['USD'])
             foundCost = 1
         i += 1
-    
+
     return(ec2_cpu, ec2_mem, ec2_cost)
 
 
@@ -386,7 +386,7 @@ def get_ecs_service_bcs(cluster: str, ci_tag: str):
                 for x in serv['tags']:
                     if x['key'] == ci_tag:
                         business_context = x['value']
-                        business_contexts[serv['serviceName']] = (serv['serviceArn'], business_context)    
+                        business_contexts[serv['serviceName']] = (serv['serviceArn'], business_context)
 
         except KeyError:
             srv_name = serv['serviceName']
@@ -560,7 +560,7 @@ def getInstanceType(region, cluster, instance, launchType):
 
 def init_db(region: str):
 
-    
+
     ecs = boto3.client("ecs", region_name=region)
     response = ecs.list_clusters()
 
@@ -608,7 +608,7 @@ def lambda_handler(event, context):
     clusterList = get_cluster_names(region)
 
     secret = json.loads(get_secret())
-    token = secret["busniesscontext"]
+    bs_token = secret["busniesscontext"]
 
     db_res = boto3.resource("dynamodb", region_name=region)
     table = db_res.Table("initDB")
@@ -632,7 +632,7 @@ def lambda_handler(event, context):
 
         # key = aws_name ; value = tag value from BC tag
         extracted_business_contexts = get_ecs_service_bcs(
-            cluster=clustername, ci_tag=token)
+            cluster=clustername, ci_tag=bs_token)
 
         cpu2mem_weight = 0.5
 
@@ -711,4 +711,4 @@ def lambda_handler(event, context):
             host = secret["host"]
             token = secret["token"]
             call_iapi(ldif=ldif, host=host, token=token)
-        
+
