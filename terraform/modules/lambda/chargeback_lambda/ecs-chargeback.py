@@ -400,11 +400,7 @@ def get_ecs_service_bcs(cluster: str, ci_tag: str):
 def call_iapi(ldif: dict, host: str, token: str):
 
     auth_url = 'https://'+host+'/services/mtm/v1/oauth2/token'
-    request_url = 'https://'+host + \
-        '/services/integration-api/v1/synchronizationRuns?start=false&test=false'
-
-    # token = os.environ['leanix_api_key']
-    token = token
+    request_url = 'https://'+ host + '/services/integration-api/v1/fastSynchronizationRuns?test=false'
 
     response = requests.post(auth_url, auth=('apitoken', token),
                              data={'grant_type': 'client_credentials'})
@@ -416,14 +412,6 @@ def call_iapi(ldif: dict, host: str, token: str):
     r = json.dumps(ldif)
     loaded_r = json.loads(r)
     r = requests.post(request_url, json=loaded_r, headers=header)
-    jsonBody = r.json()
-
-    id = jsonBody["id"]
-    request_url_update = 'https://demo-eu.leanix.net/services/integration-api/v1/synchronizationRuns/' + \
-        id+'/start?test=false'
-    #print(request_url_update)
-    print("Pushing data to LeanIX workspace")
-    r = requests.post(request_url_update, json=ldif, headers=header)
 
 
 def generateRandomNumber(digits):
