@@ -2,9 +2,9 @@
 	"processors": [
 		{
 			"processorType": "inboundFactSheet",
-			"processorName": "Create Business Context",
-			"processorDescription": "Create Business Context",
-			"type": "Application",
+			"processorName": "Create Software Artifact",
+			"processorDescription": "Create Software Artifact",
+			"type": "Microservice",
 			"identifier": {
 				"external": {
 					"id": {
@@ -30,7 +30,7 @@
 		},
 		{
 			"processorType": "inboundMetrics",
-			"processorDescription": "Store the tag-level costs for all tags configured as a source for the business context for all billing entries with dimension TAG read from the master account's LDIF in the measurement 'Cloud Costs (Business Context)'",
+			"processorDescription": "Store the tag-level costs for all tags configured as a source for the Software Artifact for all billing entries with dimension TAG read from the master account's LDIF in the measurement 'Cloud Costs (Software Artifact)'",
 			"filter": {},
 			"updates": [
 				{
@@ -39,7 +39,7 @@
 					},
 					"values": [
 						{
-							"expr": "Cloud Costs (Business Context)"
+							"expr": "Cloud Costs (Software Artifact)"
 						}
 					]
 				},
@@ -82,7 +82,7 @@
 							"map": [
 								{
 									"key": "key",
-									"value": "External ID (Business Context)"
+									"value": "External ID (Software Artifact)"
 								},
 								{
 									"key": "value",
